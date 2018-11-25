@@ -1,6 +1,7 @@
 package main
 
 import (
+	"blogDemo/controllers"
 	_ "blogDemo/routers"
 	"github.com/astaxie/beego"
 	_ "blogDemo/models"
@@ -15,6 +16,10 @@ func main() {
 
 	// 启用session
 	beego.BConfig.WebConfig.Session.SessionOn = true
+
+	// 模板函数的映射
+	beego.AddFuncMap("ShowPrevious", controllers.HandlePrevious)
+	beego.AddFuncMap("ShowNext", controllers.HandleNext)
 
 	beego.Run()
 }

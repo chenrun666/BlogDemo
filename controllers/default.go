@@ -6,6 +6,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
 	"github.com/astaxie/beego/session"
+	"math"
 )
 
 var globalSessions *session.Manager
@@ -63,26 +64,64 @@ func (c *MainController) Index() {
 		// 分类
 		c.Data["category"] = maps
 	}
+	// 获取所有的数据总数
+	count, err := qsArticle.Count()
+	if err != nil {
+		c.Ctx.WriteString("查询数据失败！！！")
+		return
+	}
+
+	pageSize := 5
+	// 起始位置
+	pageIndex, err := c.GetInt("pageIndex")
+	if err != nil {
+		pageIndex = 1
+	}
+	FirstPage := false
+	if pageIndex == 1{
+		FirstPage = true
+	}
+	LastPage := false
+	if pageIndex*pageSize > int(count) {
+		LastPage = true
+	}
+	if pageIndex < 0{
+		pageIndex = 1
+	}
+	if (pageIndex-1)*pageSize > int(count) {
+		pageIndex = int(count) / pageSize + 1
+	}
+	start := (pageIndex - 1) * pageSize
+
+
 	// 循环对应点击的分类
 	for _, v := range maps {
 		if int64(categoryId) == v["Id"] {
-			qsArticle.Filter("category__id", categoryId).RelatedSel().All(&art)
+			//qsArticle.Filter("category__id", categoryId).RelatedSel().All(&art)
+			// 1,pagesize 	一页显示多少， 2，start起始位置
+			qsArticle.Filter("category__id", categoryId).RelatedSel().Limit(pageSize, start).All(&art)
 			break
 		}
 	}
 	if categoryId == 0 {
-		qsArticle.RelatedSel().All(&art)
+		//qsArticle.RelatedSel().All(&art)
+		qsArticle.RelatedSel().Limit(pageSize, start).All(&art)
 	}
 
-	// 获取所有的数据总数
-	count := len(art)
-	fmt.Printf("count: %v\n", count)
-	// 获取当前点击的页码, 在数据中查询就是以这个开始，以currentNum+每页展示个数结束。limit限制
-	currentNum, _ := c.GetInt("page")
-	paginator := PageUtil(count, currentNum, 1, art)
+	//pageNum := count / pageSize
+	//if pageNum % pageSize != 0 {
+	//	pageNum += 1
+	//}
 
+	// 使用地板除
+	pageNum := float64(count) / float64(pageSize)
+	pageNum = math.Ceil(pageNum) // 向上取整  Math.floor() 向下取整
 
-	c.Data["paginator"] = paginator
+	c.Data["LastPage"] = LastPage
+	c.Data["FirstPage"] = FirstPage
+	c.Data["pageIndex"] = pageIndex
+	c.Data["pageNum"] = pageNum
+	c.Data["count"] = count
 	c.Data["atricleItem"] = art
 	c.Layout = "layout.html"
 	c.TplName = "index.html"
