@@ -5,7 +5,24 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/astaxie/beego/session"
 )
+
+var globalSessions *session.Manager
+
+func init() {
+	sessionConfig := &session.ManagerConfig{
+		CookieName:      "gosessionid",
+		EnableSetCookie: true,
+		Gclifetime:      3600,
+		Maxlifetime:     3600,
+		Secure:          false,
+		CookieLifeTime:  3600,
+		ProviderConfig:  "./tmp",
+	}
+	globalSessions, _ = session.NewManager("memory", sessionConfig)
+	go globalSessions.GC()
+}
 
 type MainController struct {
 	beego.Controller
@@ -16,6 +33,16 @@ type AccountController struct {
 }
 
 func (c *MainController) Index() {
+	// 获取当前请求会话，并返回当前请求会话的对象
+	sess, _ := globalSessions.SessionStart(c.Ctx.ResponseWriter, c.Ctx.Request)
+	username := sess.Get("username")
+	fmt.Printf("username:%v\n", username)
+	if username == nil {
+		c.Redirect("/login", 302)
+	}
+	// 返回当前用户的username
+	c.Data["username"] = username
+
 	// 获取orm对象，查找数据库，获取分类信息
 	o := orm.NewOrm()
 	// 存放数据的
@@ -37,7 +64,7 @@ func (c *MainController) Index() {
 		c.Data["category"] = maps
 	}
 	// 循环对应点击的分类
-	for _, v := range maps{
+	for _, v := range maps {
 		if int64(categoryId) == v["Id"] {
 			qsArticle.Filter("category__id", categoryId).RelatedSel().All(&art)
 			break
@@ -45,9 +72,17 @@ func (c *MainController) Index() {
 	}
 	if categoryId == 0 {
 		qsArticle.RelatedSel().All(&art)
-		fmt.Println(art)
 	}
 
+	// 获取所有的数据总数
+	count := len(art)
+	fmt.Printf("count: %v\n", count)
+	// 获取当前点击的页码, 在数据中查询就是以这个开始，以currentNum+每页展示个数结束。limit限制
+	currentNum, _ := c.GetInt("page")
+	paginator := PageUtil(count, currentNum, 1, art)
+
+
+	c.Data["paginator"] = paginator
 	c.Data["atricleItem"] = art
 	c.Layout = "layout.html"
 	c.TplName = "index.html"
@@ -86,8 +121,18 @@ func (c *AccountController) LoginSubmit() {
 		c.TplName = "login.html"
 		return
 	}
+	// 获取当前请求会话，并返回当前请求会话的对象
+	sess, _ := globalSessions.SessionStart(c.Ctx.ResponseWriter, c.Ctx.Request)
+	// 根据当前请求对象，设置一个session
+	sess.Set("username", username)
 	c.Redirect("/", 302)
 
+}
+
+func (c *AccountController) LoginOut() {
+	sess, _ := globalSessions.SessionStart(c.Ctx.ResponseWriter, c.Ctx.Request)
+	sess.Delete("username")
+	c.Redirect("/login", 302)
 }
 
 func (c *AccountController) Register() {

@@ -11,6 +11,7 @@ func init() {
 	// 登陆注册
 	beego.Router("/login", &controllers.AccountController{}, "get:Login;post:LoginSubmit")
 	beego.Router("/register", &controllers.AccountController{}, "get:Register;post:RegisterSubmit")
+	beego.Router("/loginout", &controllers.AccountController{}, "get:LoginOut")
 
 	// 文章跳转路径
 	beego.Router("/article", &controllers.ArticleController{}, "get:ShowArticle")
