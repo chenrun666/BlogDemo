@@ -15,4 +15,8 @@ func init() {
 
 	// 文章跳转路径
 	beego.Router("/article", &controllers.ArticleController{}, "get:ShowArticle")
+
+	// 后台管理文章
+	beego.Router("/addarticle", &controllers.ManageController{}, "get:AddArticle;post:AddArticleSubmit")
+
 }

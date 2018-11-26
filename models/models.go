@@ -32,15 +32,15 @@ type Article struct {
 	Id     int
 	Title  string
 	Brief  string
-	Atime  time.Time
-	Browse int
-	Img    string
-	Text   string `orm:"type(text)"`
+	Atime  time.Time `orm:"type(datetime);auto_now_add"`
+	Browse int       `orm:"default(0)"`
+	Img    string    `orm:"null"`
+	Text   string    `orm:"type(text)"`
 
-	Userinfo *Userinfo `orm:"rel(fk)"` // 设置一对多关系
-	Category *Category `orm:"rel(fk)"`
+	Userinfo *Userinfo `orm:"rel(fk);null"` // 设置一对多关系
+	Category *Category `orm:"rel(fk);null"`
 
-	Comment []*Comment `orm:"reverse(many)"`
+	Comment []*Comment `orm:"reverse(many);null"`
 }
 
 // 文章分类
